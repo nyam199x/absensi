@@ -20,7 +20,15 @@ class _AbsenItem {
   final DateTime? tanggal;
   final String masuk;
   final String pulang;
-  _AbsenItem({this.tanggal, required this.masuk, required this.pulang});
+  final String? keterangan;
+  final bool sakit;
+  _AbsenItem({
+    this.tanggal,
+    required this.masuk,
+    required this.pulang,
+    this.keterangan,
+    this.sakit = false,
+  });
 }
 
 class _RiwayatPageState extends State<RiwayatPage> {
@@ -138,13 +146,32 @@ class _RiwayatPageState extends State<RiwayatPage> {
   _AbsenItem _parse(Map m) {
     final masuk = _keWaktuLokal(m['check_in_time'] ?? m['check_in']);
     final pulang = _keWaktuLokal(m['check_out_time'] ?? m['check_out']);
-    final tgl = masuk ?? _keWaktuLokal(m['created_at']);
+    final tgl =
+        masuk ??
+        _parseTanggal(m['attendance_date']) ??
+        _keWaktuLokal(m['created_at']);
+
+    final alasan = (m['alasan_izin'] ?? '').toString().trim();
+    final status = (m['status'] ?? '').toString().toLowerCase();
+    final sakit = alasan.toLowerCase().startsWith('sakit') ||
+        status.contains('sakit');
 
     return _AbsenItem(
       tanggal: tgl == null ? null : DateTime(tgl.year, tgl.month, tgl.day),
       masuk: _fmtJam(masuk),
       pulang: _fmtJam(pulang),
+      keterangan: alasan.isEmpty ? null : alasan,
+      sakit: sakit,
     );
+  }
+
+  /// Tanggal murni (yyyy-MM-dd) dibaca sebagai tanggal lokal, tanpa konversi zona.
+  DateTime? _parseTanggal(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString().trim();
+    if (s.isEmpty) return null;
+    if (s.length == 10) return DateTime.tryParse(s);
+    return _keWaktuLokal(s);
   }
 
   /// Waktu dari server dianggap UTC lalu diubah ke zona waktu perangkat.
@@ -359,55 +386,102 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
   Widget _buildCard(_AbsenItem item) {
     final tgl = item.tanggal;
+    final ket = item.keterangan;
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: _glassContainer(
         borderRadius: BorderRadius.circular(22),
         padding: const EdgeInsets.all(14),
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              Container(
-                width: 84,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      tgl == null ? '-' : '${tgl.day}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            IntrinsicHeight(
+              child: Row(
+                children: [
+                  Container(
+                    width: 84,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
                       ),
                     ),
-                    Text(
-                      tgl == null ? '' : DateFormat('EEEE').format(tgl),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                    child: Column(
+                      children: [
+                        Text(
+                          tgl == null ? '-' : '${tgl.day}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          tgl == null ? '' : DateFormat('EEEE').format(tgl),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(child: _waktu('Check In', item.masuk)),
+                  VerticalDivider(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    thickness: 1,
+                    width: 16,
+                  ),
+                  Expanded(child: _waktu('Check Out', item.pulang)),
+                ],
+              ),
+            ),
+            if (ket != null && ket.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      item.sakit
+                          ? Icons.medical_services_outlined
+                          : Icons.edit_note,
+                      size: 18,
+                      color: item.sakit
+                          ? Colors.pinkAccent
+                          : Colors.lightBlueAccent,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        ket,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 14),
-              Expanded(child: _waktu('Check In', item.masuk)),
-              VerticalDivider(
-                color: Colors.white.withValues(alpha: 0.3),
-                thickness: 1,
-                width: 16,
-              ),
-              Expanded(child: _waktu('Check Out', item.pulang)),
             ],
-          ),
+          ],
         ),
       ),
     );

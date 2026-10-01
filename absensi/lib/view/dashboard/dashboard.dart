@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:nav_bar/nav_bar.dart';
+import 'package:absensi/service/izin_service.dart';
 import 'package:absensi/service/theme_services.dart';
 import 'package:absensi/view/profile/profil.dart';
 import 'package:absensi/view/widget/absen_card.dart';
@@ -39,6 +40,7 @@ class _DashboardState extends State<Dashboard> {
   int _riwayatRefresh = 0;
   List<AbsenItem> _items = [];
   AbsenItem? _hariIni;
+  int _totalSakit = 0;
 
   @override
   void initState() {
@@ -76,6 +78,14 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
+  /// Data absen dianggap "sakit" jika statusnya sakit, atau alasan izinnya
+  /// diawali kata "Sakit" (format yang dikirim dari tombol Sakit di Home).
+  bool _isSakit(Map m) {
+    final status = (m['status'] ?? '').toString().toLowerCase();
+    final alasan = (m['alasan_izin'] ?? '').toString().toLowerCase().trim();
+    return status.contains('sakit') || alasan.startsWith('sakit');
+  }
+
   Future<void> _loadStat() async {
     try {
       final now = DateTime.now();
@@ -92,6 +102,8 @@ class _DashboardState extends State<Dashboard> {
           : (result is Map && result['data'] is List)
           ? result['data'] as List
           : <dynamic>[];
+
+      final sakit = list.whereType<Map>().where(_isSakit).length;
 
       final items =
           list
@@ -111,10 +123,18 @@ class _DashboardState extends State<Dashboard> {
 
       if (!mounted) return;
 
+      final dasar = _hitungStat(items);
+
       setState(() {
         _items = items;
         _hariIni = items.where((e) => e.hariIni).firstOrNull;
-        _stat = _hitungStat(items);
+        _totalSakit = sakit;
+        // Sakit dihitung terpisah, jadi dikeluarkan dari hitungan Izin
+        _stat = AbsenStat(
+          totalHadir: dasar.totalHadir,
+          totalTerlambat: dasar.totalTerlambat,
+          totalIzin: dasar.totalIzin > sakit ? dasar.totalIzin - sakit : 0,
+        );
         _isLoadingStat = false;
       });
     } catch (e) {
@@ -182,6 +202,27 @@ class _DashboardState extends State<Dashboard> {
     );
 
     if (berhasil == true) {
+      await _onAbsenBerhasil();
+    }
+  }
+
+  /// Buka form keterangan sakit. Jika terkirim, muat ulang statistik dan
+  /// riwayat supaya keterangannya langsung tampil.
+  Future<void> _bukaFormSakit() async {
+    final berhasil = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _IzinSheet(),
+    );
+
+    if (berhasil == true) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keterangan berhasil dikirim')),
+      );
+      // Pindah ke tab Riwayat, lalu muat ulang datanya
+      _onNavTap(2);
       await _onAbsenBerhasil();
     }
   }
@@ -367,6 +408,10 @@ class _DashboardState extends State<Dashboard> {
                     const SizedBox(height: 14),
 
                     _buildTodayCard(),
+
+                    // Tombol keterangan sakit / izin
+                    const SizedBox(height: 12),
+                    _buildSakitButton(),
                   ],
                 ),
               ),
@@ -680,6 +725,37 @@ class _DashboardState extends State<Dashboard> {
   }
 
   // ============================================================
+  // TOMBOL KETERANGAN SAKIT
+  // ============================================================
+
+  Widget _buildSakitButton() {
+    return GestureDetector(
+      onTap: _bukaFormSakit,
+      behavior: HitTestBehavior.opaque,
+      child: _glassContainer(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        borderRadius: BorderRadius.circular(18),
+        child: const Row(
+          children: [
+            Icon(Icons.edit_note, color: Colors.pinkAccent),
+            SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Sakit / Izin? Ajukan keterangan',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.white),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
   // TIME SLOT
   // ============================================================
 
@@ -763,8 +839,6 @@ class _DashboardState extends State<Dashboard> {
   Widget _buildStatCards() {
     final hadir = _stat?.totalHadir ?? 0;
 
-    final terlambat = _stat?.totalTerlambat ?? 0;
-
     final izin = _stat?.totalIzin ?? 0;
 
     Widget statCard(String label, int value, Color color) {
@@ -815,12 +889,206 @@ class _DashboardState extends State<Dashboard> {
 
         const SizedBox(width: 10),
 
-        statCard('Terlambat', terlambat, Colors.orangeAccent),
+        statCard('Sakit', _totalSakit, Colors.pinkAccent),
 
         const SizedBox(width: 10),
 
         statCard('Izin', izin, Colors.lightBlueAccent),
       ],
+    );
+  }
+}
+
+// ==============================================================
+// FORM KETERANGAN SAKIT / IZIN (bottom sheet)
+// ==============================================================
+
+class _IzinSheet extends StatefulWidget {
+  const _IzinSheet();
+
+  @override
+  State<_IzinSheet> createState() => _IzinSheetState();
+}
+
+class _IzinSheetState extends State<_IzinSheet> {
+  final TextEditingController _catatanC = TextEditingController();
+  bool _sakit = true; // true = Sakit, false = Izin
+  bool _mengirim = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _catatanC.dispose();
+    super.dispose();
+  }
+
+  Future<void> _kirim() async {
+    final catatan = _catatanC.text.trim();
+    if (catatan.length < 3) {
+      setState(() => _error = 'Tulis keterangan minimal 3 karakter');
+      return;
+    }
+
+    setState(() {
+      _mengirim = true;
+      _error = null;
+    });
+
+    final hasil = await IzinService.ajukan(sakit: _sakit, catatan: catatan);
+    if (!mounted) return;
+
+    if (hasil.sukses) {
+      Navigator.pop(context, true);
+    } else {
+      setState(() {
+        _mengirim = false;
+        _error = hasil.pesan;
+      });
+    }
+  }
+
+  Widget _pilihan(String label, bool nilaiSakit) {
+    final dipilih = _sakit == nilaiSakit;
+    return ChoiceChip(
+      label: Text(label),
+      selected: dipilih,
+      showCheckmark: false,
+      onSelected: _mengirim ? null : (_) => setState(() => _sakit = nilaiSakit),
+      selectedColor: Colors.black,
+      backgroundColor: Colors.black,
+      side: BorderSide(color: dipilih ? Colors.white : Colors.red),
+      labelStyle: TextStyle(
+        color: Colors.white,
+        fontWeight: dipilih ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0D246B), Color(0xFF193E9A), Color(0xFF4169C1)],
+          ),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white38,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Keterangan Sakit / Izin',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              DateFormat('EEEE, d MMMM y', 'id_ID').format(DateTime.now()),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                _pilihan('Sakit', true),
+                const SizedBox(width: 10),
+                _pilihan('Izin', false),
+              ],
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _catatanC,
+              maxLines: 4,
+              minLines: 3,
+              enabled: !_mengirim,
+              cursorColor: Colors.white,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: _sakit
+                    ? 'Contoh: demam dan flu, istirahat di rumah'
+                    : 'Contoh: keperluan keluarga',
+                hintStyle: const TextStyle(color: Colors.white54),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.12),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Colors.white30),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Colors.white),
+                ),
+                disabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Colors.white24),
+                ),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                style: const TextStyle(
+                  color: Colors.orangeAccent,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                onPressed: _mengirim ? null : _kirim,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color.fromARGB(255, 17, 35, 95),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _mengirim
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Kirim',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
