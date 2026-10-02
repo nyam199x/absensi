@@ -4,25 +4,31 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../service/absen_service.dart';
 import '../../service/api_service.dart';
 import '../../service/dio_service.dart';
 
 class RiwayatPage extends StatefulWidget {
   /// Naikkan nilainya dari luar untuk memuat ulang riwayat (mis. setelah check in).
   final int refreshKey;
-  const RiwayatPage({super.key, this.refreshKey = 0});
+
+  /// Dipanggil setelah data absen dihapus, supaya Home ikut dimuat ulang.
+  final VoidCallback? onChanged;
+  const RiwayatPage({super.key, this.refreshKey = 0, this.onChanged});
 
   @override
   State<RiwayatPage> createState() => _RiwayatPageState();
 }
 
 class _AbsenItem {
+  final String? id;
   final DateTime? tanggal;
   final String masuk;
   final String pulang;
   final String? keterangan;
   final bool sakit;
   _AbsenItem({
+    this.id,
     this.tanggal,
     required this.masuk,
     required this.pulang,
@@ -54,6 +60,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
   final int _year = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
   bool _isLoading = true;
+  bool _menghapus = false;
   String? _error;
   List<_AbsenItem> _items = [];
 
@@ -153,13 +160,17 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
     final alasan = (m['alasan_izin'] ?? '').toString().trim();
     final status = (m['status'] ?? '').toString().toLowerCase();
+    final izin = status.contains('izin') || alasan.isNotEmpty;
     final sakit = alasan.toLowerCase().startsWith('sakit') ||
         status.contains('sakit');
 
+    final idRaw = m['id']?.toString();
+
     return _AbsenItem(
+      id: (idRaw == null || idRaw.isEmpty) ? null : idRaw,
       tanggal: tgl == null ? null : DateTime(tgl.year, tgl.month, tgl.day),
-      masuk: _fmtJam(masuk),
-      pulang: _fmtJam(pulang),
+      masuk: izin ? _fmtJam(null) : _fmtJam(masuk),
+      pulang: izin ? _fmtJam(null) : _fmtJam(pulang),
       keterangan: alasan.isEmpty ? null : alasan,
       sakit: sakit,
     );
@@ -187,6 +198,49 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
   String _fmtJam(DateTime? d) =>
       d == null ? '-- : -- : --' : DateFormat('HH : mm : ss').format(d);
+
+  Future<void> _konfirmasiHapus(_AbsenItem item) async {
+    if (_menghapus || item.id == null) return;
+
+    final tgl = item.tanggal;
+    final label = tgl == null ? 'ini' : '${tgl.day}/${tgl.month}/${tgl.year}';
+
+    final yakin = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus data absen'),
+        content: Text(
+          'Hapus data absen tanggal $label? '
+          'Setelah dihapus, kamu bisa check in ulang.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (yakin != true) return;
+
+    setState(() => _menghapus = true);
+    final hasil = await AbsenService.hapus(item.id!);
+    if (!mounted) return;
+    setState(() => _menghapus = false);
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(hasil.pesan)));
+
+    if (hasil.sukses) {
+      await _load();
+      widget.onChanged?.call();
+    }
+  }
 
   // ============================================================
   // GLASSMORPHISM HELPER (sama dengan gaya di Dashboard Home)
@@ -478,6 +532,22 @@ class _RiwayatPageState extends State<RiwayatPage> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ],
+            if (item.id != null) ...[
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _menghapus ? null : () => _konfirmasiHapus(item),
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: const Text('Hapus'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFFFB4B4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
               ),
             ],

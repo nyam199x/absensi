@@ -1,6 +1,8 @@
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:nav_bar/nav_bar.dart';
+import 'package:absensi/service/foto_service.dart';
 import 'package:absensi/service/izin_service.dart';
 import 'package:absensi/service/theme_services.dart';
 import 'package:absensi/view/profile/profil.dart';
@@ -48,6 +50,7 @@ class _DashboardState extends State<Dashboard> {
     _initDate();
     _loadUser();
     _loadStat();
+    FotoService.muat();
   }
 
   Future<void> _initDate() async {
@@ -307,7 +310,10 @@ class _DashboardState extends State<Dashboard> {
 
                 // HISTORY
                 // Desain tetap berada di riwayat.dart
-                RiwayatPage(refreshKey: _riwayatRefresh),
+                RiwayatPage(
+                  refreshKey: _riwayatRefresh,
+                  onChanged: _loadStat,
+                ),
 
                 // PROFILE
                 // Desain tetap berada di profil.dart
@@ -509,12 +515,22 @@ class _DashboardState extends State<Dashboard> {
             ),
           ),
 
-          child: const CircleAvatar(
-            radius: 30,
+          child: ValueListenableBuilder<Uint8List?>(
+            valueListenable: FotoService.foto,
 
-            backgroundColor: Color(0xFFF6D544),
+            builder: (context, foto, child) {
+              return CircleAvatar(
+                radius: 30,
 
-            child: Icon(Icons.person, size: 34, color: Colors.white),
+                backgroundColor: const Color(0xFFF6D544),
+
+                backgroundImage: foto != null ? MemoryImage(foto) : null,
+
+                child: foto == null
+                    ? const Icon(Icons.person, size: 34, color: Colors.white)
+                    : null,
+              );
+            },
           ),
         ),
 
@@ -967,9 +983,7 @@ class _IzinSheetState extends State<_IzinSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
         decoration: const BoxDecoration(
@@ -1052,10 +1066,7 @@ class _IzinSheetState extends State<_IzinSheet> {
               const SizedBox(height: 10),
               Text(
                 _error!,
-                style: const TextStyle(
-                  color: Colors.orangeAccent,
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Colors.orangeAccent, fontSize: 12),
               ),
             ],
             const SizedBox(height: 18),
