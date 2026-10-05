@@ -70,8 +70,8 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
                 scale: _logoAnimation,
                 child: Image.asset(
                   'assets/logo.png',
-                  height: 300,
-                  width: 200,
+                  height: 100,
+                  width: 400,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -87,17 +87,7 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Absensi PPKDJU',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
                     const SizedBox(height: 16),
-
                     Lottie.asset(
                       'assets/animations/loading.json',
                       width: 100,

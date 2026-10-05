@@ -9,7 +9,7 @@ class SimpanToken {
     await prefs.setString(_keyToken, token);
     if (name != null) await prefs.setString(_keyName, name);
   }
-
+  
   /// Simpan nama saja (dipakai setelah Ubah Profil berhasil),
   /// tanpa menyentuh token.
   static Future<void> saveUserName(String name) async {
@@ -31,6 +31,5 @@ class SimpanToken {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyToken);
     await prefs.remove(_keyName);
-    await prefs.remove('foto_profil');
   }
 }

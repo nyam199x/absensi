@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:absensi/reusable/app_colors.dart';
 
 import '../../service/absen_service.dart';
 import '../../service/api_service.dart';
@@ -38,7 +39,6 @@ class _AbsenItem {
 }
 
 class _RiwayatPageState extends State<RiwayatPage> {
-  static const Color _primary = Color.fromARGB(255, 17, 35, 95);
   static const List<String> _bulan = [
     'Januari',
     'Februari',
@@ -161,8 +161,8 @@ class _RiwayatPageState extends State<RiwayatPage> {
     final alasan = (m['alasan_izin'] ?? '').toString().trim();
     final status = (m['status'] ?? '').toString().toLowerCase();
     final izin = status.contains('izin') || alasan.isNotEmpty;
-    final sakit = alasan.toLowerCase().startsWith('sakit') ||
-        status.contains('sakit');
+    final sakit =
+        alasan.toLowerCase().startsWith('sakit') || status.contains('sakit');
 
     final idRaw = m['id']?.toString();
 
@@ -232,9 +232,8 @@ class _RiwayatPageState extends State<RiwayatPage> {
     if (!mounted) return;
     setState(() => _menghapus = false);
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(hasil.pesan)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(hasil.pesan)));
 
     if (hasil.sukses) {
       await _load();
@@ -243,7 +242,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
   }
 
   // ============================================================
-  // GLASSMORPHISM HELPER (sama dengan gaya di Dashboard Home)
+  // GLASSMORPHISM HELPER
   // ============================================================
 
   Widget _glassContainer({
@@ -258,15 +257,12 @@ class _RiwayatPageState extends State<RiwayatPage> {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.13),
+            color: AppColors.historyGlassBackground,
             borderRadius: borderRadius,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.25),
-              width: 1,
-            ),
+            border: Border.all(color: AppColors.historyGlassBorder, width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
+                color: AppColors.historyGlassShadow,
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -285,7 +281,11 @@ class _RiwayatPageState extends State<RiwayatPage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0D246B), Color(0xFF193E9A), Color(0xFF4169C1)],
+          colors: [
+            AppColors.historyBackgroundTop,
+            AppColors.historyBackgroundMiddle,
+            AppColors.historyBackgroundBottom,
+          ],
         ),
       ),
       child: Column(
@@ -298,7 +298,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
               child: Text(
                 'Riwayat Kehadiran',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.historyText,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
@@ -309,12 +309,12 @@ class _RiwayatPageState extends State<RiwayatPage> {
             height: 1,
             indent: 20,
             endIndent: 20,
-            color: Colors.white24,
+            color: AppColors.historyDivider,
           ),
           Expanded(
             child: RefreshIndicator(
-              color: _primary,
-              backgroundColor: Colors.white,
+              color: AppColors.historyPrimary,
+              backgroundColor: AppColors.historyText,
               onRefresh: _load,
               child: _buildList(),
             ),
@@ -353,17 +353,19 @@ class _RiwayatPageState extends State<RiwayatPage> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: selected
-                      ? Colors.white.withValues(alpha: 0.28)
+                      ? AppColors.historySelectedChipBackground
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(21),
                   border: Border.all(
-                    color: selected ? Colors.white : Colors.white54,
+                    color: selected
+                        ? AppColors.historySelectedChipBorder
+                        : AppColors.historyUnselectedChipBorder,
                   ),
                 ),
                 child: Text(
                   _bulan[i],
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.historyText,
                     fontSize: 15,
                     fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                   ),
@@ -384,7 +386,9 @@ class _RiwayatPageState extends State<RiwayatPage> {
         physics: physics,
         children: const [
           SizedBox(height: 120),
-          Center(child: CircularProgressIndicator(color: Colors.white)),
+          Center(
+            child: CircularProgressIndicator(color: AppColors.historyText),
+          ),
         ],
       );
     }
@@ -395,18 +399,22 @@ class _RiwayatPageState extends State<RiwayatPage> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 60),
-          const Icon(Icons.error_outline, size: 48, color: Colors.white70),
+          const Icon(
+            Icons.error_outline,
+            size: 48,
+            color: AppColors.historyTextSecondary,
+          ),
           const SizedBox(height: 12),
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70),
+            style: const TextStyle(color: AppColors.historyTextSecondary),
           ),
           TextButton(
             onPressed: _load,
             child: const Text(
               'Coba lagi',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColors.historyText),
             ),
           ),
         ],
@@ -419,12 +427,16 @@ class _RiwayatPageState extends State<RiwayatPage> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 60),
-          const Icon(Icons.event_busy, size: 48, color: Colors.white70),
+          const Icon(
+            Icons.event_busy,
+            size: 48,
+            color: AppColors.historyTextSecondary,
+          ),
           const SizedBox(height: 12),
           Text(
             'Belum ada data absen di bulan ${_bulan[_selectedMonth - 1]}',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70),
+            style: const TextStyle(color: AppColors.historyTextSecondary),
           ),
         ],
       );
@@ -456,18 +468,16 @@ class _RiwayatPageState extends State<RiwayatPage> {
                     width: 84,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
+                      color: AppColors.historyDateBackground,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                      ),
+                      border: Border.all(color: AppColors.historyDateBorder),
                     ),
                     child: Column(
                       children: [
                         Text(
                           tgl == null ? '-' : '${tgl.day}',
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppColors.historyText,
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
                           ),
@@ -475,7 +485,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
                         Text(
                           tgl == null ? '' : DateFormat('EEEE').format(tgl),
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppColors.historyText,
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                           ),
@@ -486,7 +496,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
                   const SizedBox(width: 14),
                   Expanded(child: _waktu('Check In', item.masuk)),
                   VerticalDivider(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: AppColors.historyTimeDivider,
                     thickness: 1,
                     width: 16,
                   ),
@@ -503,11 +513,9 @@ class _RiwayatPageState extends State<RiwayatPage> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
+                  color: AppColors.historyNoteBackground,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                  ),
+                  border: Border.all(color: AppColors.historyNoteBorder),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,15 +526,15 @@ class _RiwayatPageState extends State<RiwayatPage> {
                           : Icons.edit_note,
                       size: 18,
                       color: item.sakit
-                          ? Colors.pinkAccent
-                          : Colors.lightBlueAccent,
+                          ? AppColors.historySickIcon
+                          : AppColors.historyNoteIcon,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         ket,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.historyText,
                           fontSize: 13,
                         ),
                       ),
@@ -544,7 +552,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
                   icon: const Icon(Icons.delete_outline, size: 18),
                   label: const Text('Hapus'),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFFFB4B4),
+                    foregroundColor: AppColors.historyDelete,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     visualDensity: VisualDensity.compact,
                   ),
@@ -562,12 +570,18 @@ class _RiwayatPageState extends State<RiwayatPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.historyTextSecondary,
+            fontSize: 14,
+          ),
+        ),
         const SizedBox(height: 8),
         Text(
           jam,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.historyText,
             fontSize: 14,
             fontWeight: FontWeight.bold,
           ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:absensi/reusable/app_colors.dart';
 import 'package:absensi/service/simpan_token.dart';
 import 'package:absensi/view/dashboard/dashboard.dart';
 import 'package:absensi/view/autentikasi/login.dart';
@@ -14,10 +15,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 
 /// Screen Check in / Check out dengan Google Maps dan lokasi pengguna.
-/// Bisa dipakai layar penuh (dari tombol Clock In/Out) atau sebagai tab.
+/// Bisa dipakai layar penuh atau sebagai tab.
 class MapsScreen extends StatefulWidget {
   final bool isCheckIn;
-  final bool embedded; // true = dipakai sebagai tab (tanpa tombol back)
+  final bool embedded;
   final VoidCallback? onSuccess;
 
   const MapsScreen({
@@ -32,18 +33,22 @@ class MapsScreen extends StatefulWidget {
 }
 
 class _MapsScreenState extends State<MapsScreen> {
-  static const Color _blue = Color(0xFF5B84E8);
-
   final Geocoding geocoding = Geocoding();
   final TextEditingController _noteController = TextEditingController();
+
   GoogleMapController? _mapController;
   Position? _currentPosition;
-  String _currentAddress = "Mencari Lokasi...";
+
+  String _currentAddress = 'Mencari Lokasi...';
+
   final Set<Marker> _markers = {};
+
   bool _isLoading = false;
   bool _hasCheckedIn = false;
+
   late final ApiService _apiService = ApiService(createDioService());
   late Timer _timer;
+
   String _currentTime = DateFormat('hh:mm a').format(DateTime.now());
 
   final LatLng _defaultLocation = const LatLng(-6.2000, 108.8166666);
@@ -53,12 +58,15 @@ class _MapsScreenState extends State<MapsScreen> {
   @override
   void initState() {
     super.initState();
+
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
+
       setState(() {
         _currentTime = DateFormat('hh:mm a').format(DateTime.now());
       });
     });
+
     _checkPermissionsAndGetLocation();
   }
 
@@ -66,26 +74,32 @@ class _MapsScreenState extends State<MapsScreen> {
   void dispose() {
     _timer.cancel();
     _noteController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
   Future<void> _checkPermissionsAndGetLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
     if (!serviceEnabled) {
       if (!mounted) return;
+
       setState(() {
-        _currentAddress = "Layanan lokasi (GPS) dinonaktifkan.";
+        _currentAddress = 'Layanan lokasi (GPS) dinonaktifkan.';
       });
       return;
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
+
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
+
       if (permission == LocationPermission.denied) {
         if (!mounted) return;
+
         setState(() {
-          _currentAddress = "Izin akses lokasi ditolak.";
+          _currentAddress = 'Izin akses lokasi ditolak.';
         });
         return;
       }
@@ -93,9 +107,10 @@ class _MapsScreenState extends State<MapsScreen> {
 
     if (permission == LocationPermission.deniedForever) {
       if (!mounted) return;
+
       setState(() {
         _currentAddress =
-            "Izin lokasi ditolak permanen. Aktifkan lewat pengaturan.";
+            'Izin lokasi ditolak permanen. Aktifkan lewat pengaturan.';
       });
       return;
     }
@@ -112,33 +127,39 @@ class _MapsScreenState extends State<MapsScreen> {
       );
 
       if (!mounted) return;
+
       setState(() {
         _currentPosition = position;
       });
 
-      log("Posisi user: $position");
+      log('Posisi user: $position');
+
       _updateMarkerAndCamera(position);
       await _getAddressFromLatLng(position);
     } catch (e) {
-      log("Error getting location: $e");
+      log('Error getting location: $e');
+
       if (!mounted) return;
+
       setState(() {
-        _currentAddress = "Gagal mengambil titik lokasi terkini.";
+        _currentAddress = 'Gagal mengambil titik lokasi terkini.';
       });
     }
   }
 
   void _updateMarkerAndCamera(Position position) {
-    LatLng currentLatLng = LatLng(position.latitude, position.longitude);
+    final currentLatLng = LatLng(position.latitude, position.longitude);
+
     if (!mounted) return;
 
     setState(() {
       _markers.clear();
+
       _markers.add(
         Marker(
-          markerId: const MarkerId("currentLocation"),
+          markerId: const MarkerId('currentLocation'),
           position: currentLatLng,
-          infoWindow: const InfoWindow(title: "Lokasi Anda"),
+          infoWindow: const InfoWindow(title: 'Lokasi Anda'),
         ),
       );
     });
@@ -152,13 +173,14 @@ class _MapsScreenState extends State<MapsScreen> {
 
   Future<void> _getAddressFromLatLng(Position position) async {
     try {
-      List<Placemark> placemarks = await geocoding.placemarkFromCoordinates(
+      final placemarks = await geocoding.placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
 
       if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
+        final place = placemarks[0];
+
         final addressParts = [
           place.street,
           place.subLocality,
@@ -168,28 +190,32 @@ class _MapsScreenState extends State<MapsScreen> {
         ].where((part) => part != null && part.isNotEmpty).toList();
 
         if (!mounted) return;
+
         setState(() {
           _currentAddress = addressParts.isNotEmpty
               ? addressParts.join(', ')
-              : "Alamat tidak ditemukan.";
+              : 'Alamat tidak ditemukan.';
         });
       }
     } catch (e) {
-      log("Error getting address: $e");
+      log('Error getting address: $e');
+
       if (!mounted) return;
+
       setState(() {
-        _currentAddress = "Gagal mengonversi koordinat ke alamat.";
+        _currentAddress = 'Gagal mengonversi koordinat ke alamat.';
       });
     }
   }
 
-  /// Kirim data check in / check out ke server.
+  /// Kirim data check-in / check-out ke server.
   Future<dynamic> _kirimAbsen() async {
     final now = DateTime.now();
     final tanggal = DateFormat('yyyy-MM-dd').format(now);
     final jam = DateFormat('HH:mm').format(now);
 
     final position = _currentPosition;
+
     if (position == null) {
       throw StateError('Lokasi belum tersedia.');
     }
@@ -199,9 +225,9 @@ class _MapsScreenState extends State<MapsScreen> {
 
     log('========== MULAI KIRIM ABSEN ==========');
     log('Tanggal : $tanggal');
-    log('Jam     : $jam');
-    log('Lat     : $lat');
-    log('Lng     : $lng');
+    log('Jam : $jam');
+    log('Lat : $lat');
+    log('Lng : $lng');
     log('Check In? : ${widget.isCheckIn}');
 
     try {
@@ -252,6 +278,7 @@ class _MapsScreenState extends State<MapsScreen> {
       return res;
     } on TimeoutException {
       log('ABSEN TIMEOUT: server tidak merespons dalam 20 detik');
+
       throw DioException(
         requestOptions: RequestOptions(
           path: widget.isCheckIn
@@ -274,7 +301,6 @@ class _MapsScreenState extends State<MapsScreen> {
         ? response.data.toString()
         : response.toString();
 
-    // Samakan "check-in", "check in", "checkin" supaya mudah dicocokkan
     final text = raw
         .toLowerCase()
         .replaceAll('-', ' ')
@@ -282,11 +308,11 @@ class _MapsScreenState extends State<MapsScreen> {
 
     final sudahId = text.contains('sudah') && text.contains('check in');
     final sudahEn = text.contains('already') && text.contains('check in');
+
     return sudahId || sudahEn;
   }
 
-  /// Setelah check-in/check-out berhasil, langsung buka Dashboard.
-  /// Tidak bergantung pada embedded atau onSuccess.
+  /// Setelah check-in/check-out berhasil, buka Dashboard.
   Future<void> _finishAttendance() async {
     if (!mounted) return;
 
@@ -301,6 +327,7 @@ class _MapsScreenState extends State<MapsScreen> {
   /// Sesi tidak ada / tidak sah: tampilkan pesan lalu kembali ke Login.
   void _keLogin(String pesan) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(pesan)));
+
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const Login()),
@@ -324,7 +351,6 @@ class _MapsScreenState extends State<MapsScreen> {
       return;
     }
 
-    // Kunci tombol sebelum operasi async supaya tidak terkirim berkali-kali.
     setState(() => _isLoading = true);
 
     try {
@@ -347,8 +373,6 @@ class _MapsScreenState extends State<MapsScreen> {
 
       if (!mounted) return;
 
-      // Server menganggap check-in hari ini sudah ada.
-      // Ini bukan alasan untuk tetap di halaman Maps.
       if (widget.isCheckIn && _isAlreadyCheckedIn(response)) {
         setState(() => _hasCheckedIn = true);
 
@@ -366,7 +390,6 @@ class _MapsScreenState extends State<MapsScreen> {
         return;
       }
 
-      // Request berhasil.
       if (widget.isCheckIn) {
         setState(() => _hasCheckedIn = true);
       }
@@ -400,7 +423,6 @@ class _MapsScreenState extends State<MapsScreen> {
 
       final body = e.response?.data;
 
-      // Duplicate check-in bisa datang sebagai HTTP error.
       if (widget.isCheckIn &&
           (e.response?.statusCode == 409 || _isAlreadyCheckedIn(body))) {
         if (!mounted) return;
@@ -478,6 +500,7 @@ class _MapsScreenState extends State<MapsScreen> {
             mapToolbarEnabled: false,
             onMapCreated: (GoogleMapController controller) {
               _mapController = controller;
+
               if (_currentPosition != null) {
                 _updateMarkerAndCamera(_currentPosition!);
               }
@@ -485,31 +508,21 @@ class _MapsScreenState extends State<MapsScreen> {
           ),
 
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  widget.embedded
-                      ? const SizedBox(width: 38)
-                      : _circleButton(
-                          icon: Icons.arrow_back,
-                          onTap: () => Navigator.maybePop(context),
-                        ),
-                  Text(
-                    _currentTime,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      shadows: [Shadow(blurRadius: 6, color: Colors.black54)],
-                    ),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  _currentTime,
+                  style: const TextStyle(
+                    color: AppColors.mapsTextPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(blurRadius: 6, color: AppColors.mapsTimeShadow),
+                    ],
                   ),
-                  _circleButton(
-                    icon: Icons.refresh,
-                    onTap: _checkPermissionsAndGetLocation,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -524,26 +537,27 @@ class _MapsScreenState extends State<MapsScreen> {
                 Container(
                   height: 260,
                   decoration: const BoxDecoration(
-                    color: Colors.lightBlueAccent,
+                    color: AppColors.mapsPanelBackground,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(40),
                       topRight: Radius.circular(40),
                     ),
                   ),
                 ),
+
                 Container(
                   width: double.infinity,
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.50),
+                    color: AppColors.mapsPanelGlass,
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
                     ),
                     boxShadow: const [
                       BoxShadow(
-                        color: Colors.black26,
+                        color: AppColors.mapsPanelShadow,
                         blurRadius: 10,
                         offset: Offset(0, -2),
                       ),
@@ -558,28 +572,35 @@ class _MapsScreenState extends State<MapsScreen> {
                           width: 40,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
+                            color: AppColors.mapsHandle,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 10),
+
                       Center(
                         child: Text(
                           _actionLabel,
                           style: const TextStyle(
-                            color: _blue,
+                            color: AppColors.textabsen,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 20),
 
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.location_on, size: 22),
+                          const Icon(
+                            Icons.location_on,
+                            size: 22,
+                            color: AppColors.mapsIcon,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Column(
@@ -590,14 +611,15 @@ class _MapsScreenState extends State<MapsScreen> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
+                                    color: AppColors.mapsTextSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   _currentAddress,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 13,
-                                    color: Colors.grey.shade700,
+                                    color: AppColors.mapsAddressText,
                                   ),
                                 ),
                               ],
@@ -605,17 +627,28 @@ class _MapsScreenState extends State<MapsScreen> {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 16),
 
                       Row(
                         children: [
-                          const Icon(Icons.notes, size: 22),
+                          const Icon(
+                            Icons.notes,
+                            size: 22,
+                            color: AppColors.mapsIcon,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: TextField(
                               controller: _noteController,
+                              style: const TextStyle(
+                                color: AppColors.mapsInputText,
+                              ),
                               decoration: const InputDecoration(
                                 hintText: 'Note(Optional)',
+                                hintStyle: TextStyle(
+                                  color: AppColors.mapsInputHint,
+                                ),
                                 isDense: true,
                                 border: InputBorder.none,
                               ),
@@ -623,13 +656,17 @@ class _MapsScreenState extends State<MapsScreen> {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 8),
 
                       Row(
                         children: [
                           const Text(
                             'Status : ',
-                            style: TextStyle(fontSize: 13),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.mapsStatusText,
+                            ),
                           ),
                           Text(
                             widget.isCheckIn
@@ -640,10 +677,12 @@ class _MapsScreenState extends State<MapsScreen> {
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
+                              color: AppColors.mapsStatusText,
                             ),
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 24),
 
                       SizedBox(
@@ -652,8 +691,8 @@ class _MapsScreenState extends State<MapsScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _onSubmit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _blue,
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.button,
+                            foregroundColor: AppColors.mapsButtonText,
                             elevation: 6,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(6),
@@ -665,7 +704,7 @@ class _MapsScreenState extends State<MapsScreen> {
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white,
+                                    color: AppColors.mapsButtonLoading,
                                   ),
                                 )
                               : Text(
@@ -673,6 +712,7 @@ class _MapsScreenState extends State<MapsScreen> {
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
+                                    color: AppColors.mapsButtonText,
                                   ),
                                 ),
                         ),
@@ -684,21 +724,6 @@ class _MapsScreenState extends State<MapsScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _circleButton({required IconData icon, required VoidCallback onTap}) {
-    return Material(
-      color: _blue,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Icon(icon, color: Colors.white, size: 22),
-        ),
       ),
     );
   }

@@ -12,6 +12,7 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+
 android {
     namespace = "com.example.absensi"
     compileSdk = flutter.compileSdkVersion
