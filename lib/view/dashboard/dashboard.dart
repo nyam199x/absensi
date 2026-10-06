@@ -1,7 +1,10 @@
 import 'dart:ui';
+import 'dart:async';
 
+import 'package:absensi/reusable/app_colors.dart';
 import 'package:nav_bar/nav_bar.dart';
-import 'package:absensi/service/theme_services.dart';
+import 'package:absensi/service/foto_service.dart';
+import 'package:absensi/service/izin_service.dart';
 import 'package:absensi/view/profile/profil.dart';
 import 'package:absensi/view/widget/absen_card.dart';
 import 'package:flutter/material.dart';
@@ -25,8 +28,6 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  static const Color _primaryColor = Color.fromARGB(255, 17, 35, 95);
-
   // 0 = Home, 1 = Map, 2 = History, 3 = Profile
   int _selectedIndex = 0;
 
@@ -34,11 +35,14 @@ class _DashboardState extends State<Dashboard> {
 
   String _userName = '';
   String _today = '';
+  String _clock = DateFormat('HH:mm:ss').format(DateTime.now());
+  Timer? _clockTimer;
   AbsenStat? _stat;
   bool _isLoadingStat = true;
   int _riwayatRefresh = 0;
   List<AbsenItem> _items = [];
   AbsenItem? _hariIni;
+  int _totalSakit = 0;
 
   @override
   void initState() {
@@ -46,6 +50,18 @@ class _DashboardState extends State<Dashboard> {
     _initDate();
     _loadUser();
     _loadStat();
+    FotoService.muat();
+    _startClock();
+  }
+
+  void _startClock() {
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+
+      setState(() {
+        _clock = DateFormat('HH:mm:ss').format(DateTime.now());
+      });
+    });
   }
 
   Future<void> _initDate() async {
@@ -76,6 +92,14 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
+  /// Data absen dianggap "sakit" jika statusnya sakit, atau alasan izinnya
+  /// diawali kata "Sakit" (format yang dikirim dari tombol Sakit di Home).
+  bool _isSakit(Map m) {
+    final status = (m['status'] ?? '').toString().toLowerCase();
+    final alasan = (m['alasan_izin'] ?? '').toString().toLowerCase().trim();
+    return status.contains('sakit') || alasan.startsWith('sakit');
+  }
+
   Future<void> _loadStat() async {
     try {
       final now = DateTime.now();
@@ -92,6 +116,8 @@ class _DashboardState extends State<Dashboard> {
           : (result is Map && result['data'] is List)
           ? result['data'] as List
           : <dynamic>[];
+
+      final sakit = list.whereType<Map>().where(_isSakit).length;
 
       final items =
           list
@@ -111,10 +137,18 @@ class _DashboardState extends State<Dashboard> {
 
       if (!mounted) return;
 
+      final dasar = _hitungStat(items);
+
       setState(() {
         _items = items;
         _hariIni = items.where((e) => e.hariIni).firstOrNull;
-        _stat = _hitungStat(items);
+        _totalSakit = sakit;
+        // Sakit dihitung terpisah, jadi dikeluarkan dari hitungan Izin
+        _stat = AbsenStat(
+          totalHadir: dasar.totalHadir,
+          totalTerlambat: dasar.totalTerlambat,
+          totalIzin: dasar.totalIzin > sakit ? dasar.totalIzin - sakit : 0,
+        );
         _isLoadingStat = false;
       });
     } catch (e) {
@@ -186,6 +220,27 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
+  /// Buka form keterangan sakit. Jika terkirim, muat ulang statistik dan
+  /// riwayat supaya keterangannya langsung tampil.
+  Future<void> _bukaFormSakit() async {
+    final berhasil = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _IzinSheet(),
+    );
+
+    if (berhasil == true) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keterangan berhasil dikirim')),
+      );
+      // Pindah ke tab Riwayat, lalu muat ulang datanya
+      _onNavTap(2);
+      await _onAbsenBerhasil();
+    }
+  }
+
   void _onNavTap(int index) {
     setState(() {
       _selectedIndex = index;
@@ -209,15 +264,12 @@ class _DashboardState extends State<Dashboard> {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.13),
+            color: AppColors.glassBackground,
             borderRadius: borderRadius,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.25),
-              width: 1,
-            ),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
+                color: AppColors.glassShadow,
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -238,8 +290,7 @@ class _DashboardState extends State<Dashboard> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: _primaryColor,
-
+        backgroundColor: AppColors.background,
         body: SafeArea(
           bottom: false,
           child: Container(
@@ -250,7 +301,7 @@ class _DashboardState extends State<Dashboard> {
             // Jangan beri gradient di sini.
             // History dan Profile tetap menggunakan
             // background dari file masing-masing.
-            color: Colors.white,
+            color: AppColors.textWhite,
 
             child: IndexedStack(
               index: _selectedIndex,
@@ -266,7 +317,7 @@ class _DashboardState extends State<Dashboard> {
 
                 // HISTORY
                 // Desain tetap berada di riwayat.dart
-                RiwayatPage(refreshKey: _riwayatRefresh),
+                RiwayatPage(refreshKey: _riwayatRefresh, onChanged: _loadStat),
 
                 // PROFILE
                 // Desain tetap berada di profil.dart
@@ -279,6 +330,12 @@ class _DashboardState extends State<Dashboard> {
         bottomNavigationBar: _buildBottomNav(),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _clockTimer?.cancel();
+    super.dispose();
   }
 
   // ============================================================
@@ -323,7 +380,11 @@ class _DashboardState extends State<Dashboard> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0D246B), Color(0xFF193E9A), Color(0xFF4169C1)],
+          colors: [
+            AppColors.backgroundTop,
+            AppColors.backgroundMiddle,
+            AppColors.backgroundBottom,
+          ],
         ),
       ),
 
@@ -352,21 +413,38 @@ class _DashboardState extends State<Dashboard> {
 
                     const SizedBox(height: 16),
 
-                    Text(
-                      _today,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.75),
-                        fontSize: 12,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _today,
+                            style: const TextStyle(
+                              color: AppColors.textWhite70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _clock,
+                          style: const TextStyle(
+                            color: AppColors.textWhite,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 12),
 
-                    _buildAttendanceBar(),
-
-                    const SizedBox(height: 14),
-
                     _buildTodayCard(),
+
+                    // Tombol keterangan sakit / izin
+                    const SizedBox(height: 12),
+                    _buildSakitButton(),
                   ],
                 ),
               ),
@@ -392,7 +470,7 @@ class _DashboardState extends State<Dashboard> {
                       child: Text(
                         'Riwayat Kehadiran',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textWhite,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
@@ -404,7 +482,7 @@ class _DashboardState extends State<Dashboard> {
 
                       child: const Text(
                         'Lihat semua',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: AppColors.textWhite),
                       ),
                     ),
                   ],
@@ -422,7 +500,7 @@ class _DashboardState extends State<Dashboard> {
                     'Belum ada data absen bulan ini',
                     textAlign: TextAlign.center,
 
-                    style: TextStyle(color: Colors.white70),
+                    style: TextStyle(color: AppColors.textWhite70),
                   ),
                 )
               else
@@ -449,126 +527,77 @@ class _DashboardState extends State<Dashboard> {
   // ============================================================
 
   Widget _buildProfileRow() {
-    return Row(
-      children: [
-        // Avatar
-        Container(
-          padding: const EdgeInsets.all(2),
-
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.4),
-              width: 2,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.glassBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.glassBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.glassShadow,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.textWhite38, width: 2),
+            ),
+            child: ValueListenableBuilder<Uint8List?>(
+              valueListenable: FotoService.foto,
+              builder: (context, foto, child) {
+                return CircleAvatar(
+                  radius: 30,
+                  backgroundColor: AppColors.avatarBackground,
+                  backgroundImage: foto != null ? MemoryImage(foto) : null,
+                  child: foto == null
+                      ? const Icon(
+                          Icons.person,
+                          size: 34,
+                          color: AppColors.textWhite,
+                        )
+                      : null,
+                );
+              },
             ),
           ),
 
-          child: const CircleAvatar(
-            radius: 30,
+          const SizedBox(width: 14),
 
-            backgroundColor: Color(0xFFF6D544),
-
-            child: Icon(Icons.person, size: 34, color: Colors.white),
-          ),
-        ),
-
-        const SizedBox(width: 14),
-
-        // Nama
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-
-            children: [
-              Text(
-                _greeting,
-
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
+          // Nama dan sapaan
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _greeting,
+                  style: const TextStyle(
+                    color: AppColors.textWhite,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 4),
-
-              Text(
-                _userName,
-
-                maxLines: 1,
-
-                overflow: TextOverflow.ellipsis,
-
-                style: const TextStyle(color: Colors.white, fontSize: 15),
-              ),
-            ],
-          ),
-        ),
-
-        // Dark / Light Mode
-        ValueListenableBuilder<ThemeMode>(
-          valueListenable: ThemeService.themeMode,
-
-          builder: (context, mode, _) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.13),
-
-                shape: BoxShape.circle,
-
-                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-              ),
-
-              child: IconButton(
-                icon: Icon(
-                  mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode,
-
-                  color: Colors.white,
+                const SizedBox(height: 4),
+                Text(
+                  _userName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textWhite,
+                    fontSize: 15,
+                  ),
                 ),
-
-                onPressed: ThemeService.toggleTheme,
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // ATTENDANCE BAR
-  // ============================================================
-
-  Widget _buildAttendanceBar() {
-    return GestureDetector(
-      onTap: () => _onNavTap(1),
-
-      child: _glassContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-
-        borderRadius: BorderRadius.circular(18),
-
-        child: const Row(
-          children: [
-            Icon(Icons.calendar_month_outlined, color: Colors.white),
-
-            SizedBox(width: 16),
-
-            Expanded(
-              child: Text(
-                'Take attendance today',
-
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              ],
             ),
-
-            Icon(Icons.access_time, color: Colors.white),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -597,7 +626,7 @@ class _DashboardState extends State<Dashboard> {
               const Icon(
                 Icons.location_on_outlined,
                 size: 18,
-                color: Colors.white,
+                color: AppColors.textWhite,
               ),
 
               const SizedBox(width: 6),
@@ -608,7 +637,10 @@ class _DashboardState extends State<Dashboard> {
                       ? alamat
                       : 'Lokasi akan tercatat saat check in',
 
-                  style: const TextStyle(fontSize: 12, color: Colors.white),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textWhite,
+                  ),
                 ),
               ),
             ],
@@ -622,9 +654,9 @@ class _DashboardState extends State<Dashboard> {
 
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
+                color: AppColors.glassLight,
 
-                border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                border: Border.all(color: AppColors.buttonBackground),
 
                 borderRadius: BorderRadius.circular(15),
               ),
@@ -648,7 +680,7 @@ class _DashboardState extends State<Dashboard> {
                     ),
 
                     VerticalDivider(
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: AppColors.textWhite30,
 
                       thickness: 1,
 
@@ -663,7 +695,7 @@ class _DashboardState extends State<Dashboard> {
 
                         aksi: (masuk != null && pulang == null)
                             ? _aksiButton(
-                                'Clock Out',
+                                'Check Out',
                                 () => _goToAbsen(isCheckIn: false),
                               )
                             : null,
@@ -675,6 +707,37 @@ class _DashboardState extends State<Dashboard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // TOMBOL KETERANGAN SAKIT
+  // ============================================================
+
+  Widget _buildSakitButton() {
+    return GestureDetector(
+      onTap: _bukaFormSakit,
+      behavior: HitTestBehavior.opaque,
+      child: _glassContainer(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        borderRadius: BorderRadius.circular(18),
+        child: const Row(
+          children: [
+            Icon(Icons.edit_note, color: AppColors.sakit),
+            SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Sakit / Izin? Ajukan keterangan',
+                style: TextStyle(
+                  color: AppColors.textWhite,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, color: AppColors.textWhite),
+          ],
+        ),
       ),
     );
   }
@@ -699,7 +762,7 @@ class _DashboardState extends State<Dashboard> {
             label,
 
             style: const TextStyle(
-              color: Colors.white70,
+              color: AppColors.textWhite70,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -710,7 +773,7 @@ class _DashboardState extends State<Dashboard> {
             jam,
 
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.textWhite,
               fontSize: 17,
               fontWeight: FontWeight.bold,
             ),
@@ -734,9 +797,9 @@ class _DashboardState extends State<Dashboard> {
         onPressed: onTap,
 
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white.withValues(alpha: 0.18),
+          backgroundColor: AppColors.buttonBackground,
 
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.buttonText,
 
           elevation: 0,
 
@@ -747,7 +810,7 @@ class _DashboardState extends State<Dashboard> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
 
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+            side: BorderSide(color: AppColors.textWhite30),
           ),
         ),
 
@@ -762,8 +825,6 @@ class _DashboardState extends State<Dashboard> {
 
   Widget _buildStatCards() {
     final hadir = _stat?.totalHadir ?? 0;
-
-    final terlambat = _stat?.totalTerlambat ?? 0;
 
     final izin = _stat?.totalIzin ?? 0;
 
@@ -783,7 +844,7 @@ class _DashboardState extends State<Dashboard> {
 
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: AppColors.textWhite,
                       ),
                     )
                   : Text(
@@ -801,7 +862,10 @@ class _DashboardState extends State<Dashboard> {
               Text(
                 label,
 
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textWhite70,
+                ),
               ),
             ],
           ),
@@ -811,16 +875,216 @@ class _DashboardState extends State<Dashboard> {
 
     return Row(
       children: [
-        statCard('Hadir', hadir, Colors.greenAccent),
+        statCard('Hadir', hadir, AppColors.hadir),
 
         const SizedBox(width: 10),
 
-        statCard('Terlambat', terlambat, Colors.orangeAccent),
+        statCard('Sakit', _totalSakit, AppColors.sakit),
 
         const SizedBox(width: 10),
 
-        statCard('Izin', izin, Colors.lightBlueAccent),
+        statCard('Izin', izin, AppColors.izin),
       ],
+    );
+  }
+}
+
+// ==============================================================
+// FORM KETERANGAN SAKIT / IZIN (bottom sheet)
+// ==============================================================
+
+class _IzinSheet extends StatefulWidget {
+  const _IzinSheet();
+
+  @override
+  State<_IzinSheet> createState() => _IzinSheetState();
+}
+
+class _IzinSheetState extends State<_IzinSheet> {
+  final TextEditingController _catatanC = TextEditingController();
+  bool _sakit = true; // true = Sakit, false = Izin
+  bool _mengirim = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _catatanC.dispose();
+    super.dispose();
+  }
+
+  Future<void> _kirim() async {
+    final catatan = _catatanC.text.trim();
+    if (catatan.length < 3) {
+      setState(() => _error = 'Tulis keterangan minimal 3 karakter');
+      return;
+    }
+
+    setState(() {
+      _mengirim = true;
+      _error = null;
+    });
+
+    final hasil = await IzinService.ajukan(sakit: _sakit, catatan: catatan);
+    if (!mounted) return;
+
+    if (hasil.sukses) {
+      Navigator.pop(context, true);
+    } else {
+      setState(() {
+        _mengirim = false;
+        _error = hasil.pesan;
+      });
+    }
+  }
+
+  Widget _pilihan(String label, bool nilaiSakit) {
+    final dipilih = _sakit == nilaiSakit;
+    return ChoiceChip(
+      label: Text(label),
+      selected: dipilih,
+      showCheckmark: false,
+      onSelected: _mengirim ? null : (_) => setState(() => _sakit = nilaiSakit),
+      selectedColor: AppColors.choiceChipBackground,
+      backgroundColor: AppColors.choiceChipBackground,
+      side: BorderSide(
+        color: dipilih ? AppColors.textWhite : AppColors.choiceChipBorder,
+      ),
+      labelStyle: TextStyle(
+        color: AppColors.textWhite,
+        fontWeight: dipilih ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.backgroundTop,
+              AppColors.backgroundMiddle,
+              AppColors.backgroundBottom,
+            ],
+          ),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textWhite38,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Keterangan Sakit / Izin',
+              style: TextStyle(
+                color: AppColors.textWhite,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              DateFormat('EEEE, d MMMM y', 'id_ID').format(DateTime.now()),
+              style: const TextStyle(
+                color: AppColors.textWhite70,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                _pilihan('Sakit', true),
+                const SizedBox(width: 10),
+                _pilihan('Izin', false),
+              ],
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _catatanC,
+              maxLines: 4,
+              minLines: 3,
+              enabled: !_mengirim,
+              cursorColor: AppColors.textWhite,
+              style: const TextStyle(color: AppColors.textWhite),
+              decoration: InputDecoration(
+                hintText: _sakit
+                    ? 'Contoh: demam dan flu, istirahat di rumah'
+                    : 'Contoh: keperluan keluarga',
+                hintStyle: const TextStyle(color: AppColors.textWhite54),
+                filled: true,
+                fillColor: AppColors.glassLight,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: AppColors.textWhite30),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: AppColors.textWhite),
+                ),
+                disabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: AppColors.textWhite24),
+                ),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                style: const TextStyle(color: AppColors.error, fontSize: 12),
+              ),
+            ],
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                onPressed: _mengirim ? null : _kirim,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.textWhite,
+                  foregroundColor: AppColors.background,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _mengirim
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Kirim',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

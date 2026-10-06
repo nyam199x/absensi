@@ -117,6 +117,7 @@ class _RegisterState extends State<Register> {
       backgroundColor: _primaryColor,
       appBar: AppBar(
         backgroundColor: _primaryColor,
+        automaticallyImplyLeading: false,
         centerTitle: true,
         title: const Text(
           'Register',
@@ -132,18 +133,39 @@ class _RegisterState extends State<Register> {
           key: _registrasiForm,
           child: Column(
             children: [
-              const SizedBox(height: 10),
-
-              const SizedBox(height: 20),
-              Expanded(
+              const SizedBox(height: 40),
+              const Text(
+                'Create Account',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Please fill in the details below to \n create a new account',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              const Spacer(), // dorong container ke bawah
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.65,
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(70),
-                      topRight: Radius.circular(70),
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                      bottomLeft: Radius.circular(3),
+                      bottomRight: Radius.circular(30),
                     ),
                     border: Border(
                       top: BorderSide(color: Colors.grey.shade400),
@@ -152,25 +174,8 @@ class _RegisterState extends State<Register> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        const Text(
-                          'Create Account',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: _primaryColor,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Isi data di bawah untuk\nmembuat akun baru',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
+                        const SizedBox(height: 10),
+
                         const SizedBox(height: 40),
 
                         // NAMA
@@ -280,6 +285,42 @@ class _RegisterState extends State<Register> {
                                     'Register',
                                     style: TextStyle(color: Colors.white),
                                   ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'already have an account?',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 12,
+                                ),
+                              ),
+
+                              const SizedBox(width: 5),
+
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const Login(),
+                                    ),
+                                  );
+                                },
+                                child: const Text(
+                                  'Sign in',
+                                  style: TextStyle(
+                                    color: Color.fromARGB(255, 17, 35, 95),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

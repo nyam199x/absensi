@@ -15,8 +15,6 @@ class _UbahProfilPageState extends State<UbahProfilPage> {
 
   final _formKey = GlobalKey<FormState>();
   final _namaC = TextEditingController();
-  final _emailC = TextEditingController();
-  final _noHpC = TextEditingController();
 
   bool _memuat = true;
   bool _menyimpan = false;
@@ -30,8 +28,7 @@ class _UbahProfilPageState extends State<UbahProfilPage> {
   @override
   void dispose() {
     _namaC.dispose();
-    _emailC.dispose();
-    _noHpC.dispose();
+
     super.dispose();
   }
 
@@ -44,8 +41,7 @@ class _UbahProfilPageState extends State<UbahProfilPage> {
     if (!mounted) return;
     setState(() {
       _namaC.text = profil?.nama ?? namaLokal ?? '';
-      _emailC.text = profil?.email ?? '';
-      _noHpC.text = profil?.noHp ?? '';
+
       _memuat = false;
     });
     if (profil == null) {
@@ -60,11 +56,7 @@ class _UbahProfilPageState extends State<UbahProfilPage> {
   Future<void> _simpan() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final req = UbahProfilRequest(
-      nama: _namaC.text.trim(),
-      email: _emailC.text.trim(),
-      noHp: _noHpC.text.trim(),
-    );
+    final req = UbahProfilRequest(nama: _namaC.text.trim());
     final error = req.validasi();
     if (error != null) {
       _snack(error);
@@ -98,7 +90,7 @@ class _UbahProfilPageState extends State<UbahProfilPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ubah Profil'),
+        title: const Text('Ubah Nama'),
         backgroundColor: _primary,
         foregroundColor: Colors.white,
       ),
@@ -119,25 +111,9 @@ class _UbahProfilPageState extends State<UbahProfilPage> {
                           : null,
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailC,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: _dekorasi('Email', Icons.email_outlined),
-                      validator: (v) {
-                        final t = v?.trim() ?? '';
-                        if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(t)) {
-                          return 'Format email tidak valid';
-                        }
-                        return null;
-                      },
-                    ),
+
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _noHpC,
-                      keyboardType: TextInputType.phone,
-                      decoration:
-                          _dekorasi('No. HP (opsional)', Icons.phone_outlined),
-                    ),
+
                     const SizedBox(height: 28),
                     SizedBox(
                       width: double.infinity,

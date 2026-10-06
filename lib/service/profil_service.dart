@@ -10,17 +10,18 @@ class ProfilService {
 
   // TODO: cocokkan path ini dengan dokumentasi/Postman backend
   static const String _pathProfil = '/profile';
-  static const String _pathKataSandi = '/change-password';
 
   static final Dio _dio = createDioService();
 
   static Future<Options> _options() async {
     final token = await SimpanToken.getToken();
-    return Options(headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-    });
+    return Options(
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      },
+    );
   }
 
   /// Ambil pesan error dari respons server, atau pesan bawaan.
@@ -60,6 +61,7 @@ class ProfilService {
         options: await _options(),
       );
       final body = res.data;
+      debugPrint('PROFIL RESPONSE: $body');
       if (body is! Map) return null;
       final data = body['data'] ?? body['user'] ?? body;
       if (data is! Map<String, dynamic>) return null;
@@ -80,28 +82,11 @@ class ProfilService {
       return _sukses(res, 'Profil berhasil diperbarui');
     } on DioException catch (e) {
       debugPrint(
-          'Gagal ubah profil: ${e.response?.statusCode} ${e.response?.data} $e');
+        'Gagal ubah profil: ${e.response?.statusCode} ${e.response?.data} $e',
+      );
       return AksiResponse(sukses: false, pesan: _pesanError(e));
     } catch (e) {
       debugPrint('Gagal ubah profil: $e');
-      return const AksiResponse(sukses: false, pesan: 'Terjadi kesalahan');
-    }
-  }
-
-  static Future<AksiResponse> ubahKataSandi(UbahKataSandiRequest req) async {
-    try {
-      final res = await _dio.put(
-        '$_baseUrl$_pathKataSandi',
-        data: req.toJson(),
-        options: await _options(),
-      );
-      return _sukses(res, 'Kata sandi berhasil diubah');
-    } on DioException catch (e) {
-      debugPrint(
-          'Gagal ubah kata sandi: ${e.response?.statusCode} ${e.response?.data} $e');
-      return AksiResponse(sukses: false, pesan: _pesanError(e));
-    } catch (e) {
-      debugPrint('Gagal ubah kata sandi: $e');
       return const AksiResponse(sukses: false, pesan: 'Terjadi kesalahan');
     }
   }
