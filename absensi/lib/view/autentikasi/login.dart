@@ -1,4 +1,3 @@
-
 import 'package:absensi/view/dashboard/dashboard.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -12,10 +11,7 @@ import 'package:absensi/service/api_service.dart';
 class Login extends StatefulWidget {
   final bool showLogoutMessage;
 
-  const Login({
-    super.key,
-    this.showLogoutMessage = false,
-  });
+  const Login({super.key, this.showLogoutMessage = false});
 
   @override
   State<Login> createState() => _LoginState();
@@ -28,19 +24,16 @@ class _LoginState extends State<Login> {
   final _formKey = GlobalKey<FormState>();
 
   // Controller form
-  final TextEditingController emailController =
-      TextEditingController();
+  final TextEditingController emailController = TextEditingController();
 
-  final TextEditingController passwordController =
-      TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   // Focus untuk animasi
   final FocusNode emailFocusNode = FocusNode();
   final FocusNode passwordFocusNode = FocusNode();
 
   // Controller API
-  late final ApiService _apiService =
-      ApiService(createDioService());
+  late final ApiService _apiService = ApiService(createDioService());
 
   // Rive controller dan input
   StateMachineController? controller;
@@ -120,18 +113,13 @@ class _LoginState extends State<Login> {
           : null;
 
       if (token == null || token.isEmpty) {
-        throw Exception(
-          'Token tidak ditemukan di respons login',
-        );
+        throw Exception('Token tidak ditemukan di respons login');
       }
 
       final user = data is Map ? data['user'] : null;
       final name = user is Map ? user['name']?.toString() : null;
 
-      await SimpanToken.saveSession(
-        token: token,
-        name: name,
-      );
+      await SimpanToken.saveSession(token: token, name: name);
 
       if (!mounted) return;
 
@@ -139,17 +127,13 @@ class _LoginState extends State<Login> {
       triggerSuccess?.fire();
 
       // Beri waktu agar animasi berhasil terlihat
-      await Future.delayed(
-        const Duration(milliseconds: 700),
-      );
+      await Future.delayed(const Duration(milliseconds: 700));
 
       if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const Dashboard(),
-        ),
+        MaterialPageRoute(builder: (_) => const Dashboard()),
       );
     } on DioException catch (e) {
       triggerFail?.fire();
@@ -162,9 +146,8 @@ class _LoginState extends State<Login> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(pesan)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(pesan)));
     } catch (e) {
       triggerFail?.fire();
 
@@ -173,9 +156,7 @@ class _LoginState extends State<Login> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Terjadi kesalahan saat login'),
-        ),
+        const SnackBar(content: Text('Terjadi kesalahan saat login')),
       );
     } finally {
       if (mounted) {
@@ -211,60 +192,47 @@ class _LoginState extends State<Login> {
             children: [
               // ANIMASI RIVE DI BAWAH APPBAR
               SizedBox(
-                height: 190,
+                height: 295,
                 width: double.infinity,
                 child: RiveAnimation.asset(
                   'assets/animations/auth_teddy.riv',
                   fit: BoxFit.contain,
                   onInit: (artboard) {
-                    final riveController =
-                        StateMachineController.fromArtboard(
+                    final riveController = StateMachineController.fromArtboard(
                       artboard,
                       'Login Machine',
                     );
 
                     if (riveController == null) {
-                      debugPrint(
-                        'State machine Login Machine tidak ditemukan',
-                      );
+                      debugPrint('State machine Login Machine tidak ditemukan');
                       return;
                     }
 
                     artboard.addController(riveController);
                     controller = riveController;
 
-                    lookOnEmail =
-                        riveController.getBoolInput('isFocus');
+                    lookOnEmail = riveController.getBoolInput('isFocus');
 
-                    followOnEmail =
-                        riveController.getNumberInput('numLook');
+                    followOnEmail = riveController.getNumberInput('numLook');
 
-                    lookOnPassword =
-                        riveController.getBoolInput('isPrivateField');
+                    lookOnPassword = riveController.getBoolInput(
+                      'isPrivateField',
+                    );
 
-                    peekOnPassword =
-                        riveController.getBoolInput(
+                    peekOnPassword = riveController.getBoolInput(
                       'isPrivateFieldShow',
                     );
 
-                    triggerSuccess =
-                        riveController.getTriggerInput(
+                    triggerSuccess = riveController.getTriggerInput(
                       'successTrigger',
                     );
 
-                    triggerFail =
-                        riveController.getTriggerInput(
-                      'failTrigger',
-                    );
+                    triggerFail = riveController.getTriggerInput('failTrigger');
 
                     // Sinkronkan animasi dengan fokus saat ini
-                    lookOnEmail?.change(
-                      emailFocusNode.hasFocus,
-                    );
+                    lookOnEmail?.change(emailFocusNode.hasFocus);
 
-                    lookOnPassword?.change(
-                      passwordFocusNode.hasFocus,
-                    );
+                    lookOnPassword?.change(passwordFocusNode.hasFocus);
 
                     peekOnPassword?.change(!obsecure);
                   },
@@ -272,10 +240,12 @@ class _LoginState extends State<Login> {
               ),
 
               // FORM LOGIN
-              Expanded(
+              const Spacer(), // dorong container ke bawah
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.50,
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(15),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: const BorderRadius.only(
@@ -283,9 +253,7 @@ class _LoginState extends State<Login> {
                       topRight: Radius.circular(70),
                     ),
                     border: Border(
-                      top: BorderSide(
-                        color: Colors.grey.shade400,
-                      ),
+                      top: BorderSide(color: Colors.grey.shade400),
                     ),
                   ),
 
@@ -330,9 +298,7 @@ class _LoginState extends State<Login> {
                           focusNode: emailFocusNode,
                           keyboardType: TextInputType.emailAddress,
                           onChanged: (value) {
-                            followOnEmail?.change(
-                              value.length.toDouble(),
-                            );
+                            followOnEmail?.change(value.length.toDouble());
                           },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -398,8 +364,12 @@ class _LoginState extends State<Login> {
                           height: 45,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  const Color.fromARGB(255, 17, 35, 95),
+                              backgroundColor: const Color.fromARGB(
+                                255,
+                                17,
+                                35,
+                                95,
+                              ),
                             ),
                             onPressed: _isLoading ? null : _login,
                             child: _isLoading
@@ -525,14 +495,12 @@ class _LoginState extends State<Login> {
 
                         // LINK REGISTER
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 20,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 20),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Text(
-                                'already have an account?',
+                                'Dont have an account?',
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 12,
@@ -546,8 +514,7 @@ class _LoginState extends State<Login> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          const Register(),
+                                      builder: (context) => const Register(),
                                     ),
                                   );
                                 },

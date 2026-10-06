@@ -52,23 +52,22 @@ class AppColors {
 
   // WARNA HALAMAN MAPS_SCREEN
 
-  static const Color button = Color(0xFF11235F);
-  static const Color mapsPanelBackground = Colors.lightBlueAccent;
-  static Color get mapsPanelGlass => Colors.white.withValues(alpha: 0.50);
-  static const Color mapsPanelShadow = Colors.black26;
+  static const Color button = Color(0x20FFFFFF);
+  static Color get mapsBackground => Color(0xFF4169C1);
+  
 
   // TEXT
   static const Color mapsTextPrimary = Colors.white;
-  static const Color mapsTextSecondary = Color(0xFF616161);
-  static const Color mapsTextHint = Color.fromARGB(255, 139, 139, 139);
-  static const Color textabsen = Color(0xFF11235F);
-  static const Color mapsAddressText = Color.fromARGB(136, 105, 43, 43);
-  static const Color mapsInputHint = Color.fromARGB(136, 105, 43, 43);
+  static const Color mapsTextSecondary = Colors.white;
+  static const Color textabsen = Colors.white;
+  static const Color mapsAddressText = Colors.white;
+  static const Color mapsInputHint = Colors.white;
+  // Text status check in / check out
+  static const Color mapsStatusText = Colors.white;
 
   // ICON
-  static const Color mapsIcon = Color.fromARGB(255, 225, 21, 21);
-  static const Color mapsIconLight = Colors.white;
-  static const Color back = Color(0xFF11235F);
+  static const Color mapsIcon = Colors.white;
+  static const Color mapsNoteIcon = Colors.white;
 
   // BUTTON
   static const Color mapsButtonText = Colors.white;
@@ -82,9 +81,6 @@ class AppColors {
 
   // INPUT
   static const Color mapsInputText = Color(0xFF212121);
-
-  // STATUS
-  static const Color mapsStatusText = Color(0xFF212121);
 
   // ============================================================
   // WARNA HALAMAN PROFIL
@@ -133,7 +129,6 @@ class AppColors {
 
   // HANDLE BOTTOM SHEET FOTO PROFIL
   static const Color profileHandle = Colors.white38;
-
 
   // ============================================================
   // WARNA HALAMAN RIWAYAT

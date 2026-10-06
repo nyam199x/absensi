@@ -535,33 +535,14 @@ class _MapsScreenState extends State<MapsScreen> {
               alignment: Alignment.bottomCenter,
               children: [
                 Container(
-                  height: 260,
-                  decoration: const BoxDecoration(
-                    color: AppColors.mapsPanelBackground,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(40),
-                      topRight: Radius.circular(40),
-                    ),
-                  ),
-                ),
-
-                Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                   decoration: BoxDecoration(
-                    color: AppColors.mapsPanelGlass,
+                    color: AppColors.mapsBackground,
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
                     ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: AppColors.mapsPanelShadow,
-                        blurRadius: 10,
-                        offset: Offset(0, -2),
-                      ),
-                    ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -635,7 +616,7 @@ class _MapsScreenState extends State<MapsScreen> {
                           const Icon(
                             Icons.notes,
                             size: 22,
-                            color: AppColors.mapsIcon,
+                            color: AppColors.mapsNoteIcon,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
