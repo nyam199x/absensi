@@ -167,6 +167,7 @@ class _LoginState extends State<Login> {
     }
   }
 
+  // final double _rasioArtboard = 1.0;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -191,58 +192,71 @@ class _LoginState extends State<Login> {
           child: Column(
             children: [
               // ANIMASI RIVE DI BAWAH APPBAR
-              SizedBox(
-                height: 295,
-                width: double.infinity,
-                child: RiveAnimation.asset(
-                  'assets/animations/auth_teddy.riv',
-                  fit: BoxFit.contain,
-                  onInit: (artboard) {
-                    final riveController = StateMachineController.fromArtboard(
-                      artboard,
-                      'Login Machine',
-                    );
+              // Expanded(
+              //   child: LayoutBuilder(
+              //     builder: (context, constraints) {
+              //       final tinggiTampil = (constraints.maxWidth / _rasioArtboard)
+              //           .clamp(0.0, constraints.maxHeight);
 
-                    if (riveController == null) {
-                      debugPrint('State machine Login Machine tidak ditemukan');
-                      return;
-                    }
+              //       return Transform.translate(
+              //         offset: Offset(0, tinggiTampil * 0.08),
+              //         child: RiveAnimation.asset(
+              //           'assets/animations/auth_teddy.riv',
+              //           fit: BoxFit.contain,
+              //           onInit: (artboard) {
+              //             final riveController =
+              //                 StateMachineController.fromArtboard(
+              //                   artboard,
+              //                   'Login Machine',
+              //                 );
 
-                    artboard.addController(riveController);
-                    controller = riveController;
+              //             if (riveController == null) {
+              //               debugPrint(
+              //                 'State machine Login Machine tidak ditemukan',
+              //               );
+              //               return;
+              //             }
 
-                    lookOnEmail = riveController.getBoolInput('isFocus');
+              //             artboard.addController(riveController);
+              //             controller = riveController;
 
-                    followOnEmail = riveController.getNumberInput('numLook');
+              //             lookOnEmail = riveController.getBoolInput('isFocus');
 
-                    lookOnPassword = riveController.getBoolInput(
-                      'isPrivateField',
-                    );
+              //             followOnEmail = riveController.getNumberInput(
+              //               'numLook',
+              //             );
 
-                    peekOnPassword = riveController.getBoolInput(
-                      'isPrivateFieldShow',
-                    );
+              //             lookOnPassword = riveController.getBoolInput(
+              //               'isPrivateField',
+              //             );
 
-                    triggerSuccess = riveController.getTriggerInput(
-                      'successTrigger',
-                    );
+              //             peekOnPassword = riveController.getBoolInput(
+              //               'isPrivateFieldShow',
+              //             );
 
-                    triggerFail = riveController.getTriggerInput('failTrigger');
+              //             triggerSuccess = riveController.getTriggerInput(
+              //               'successTrigger',
+              //             );
 
-                    // Sinkronkan animasi dengan fokus saat ini
-                    lookOnEmail?.change(emailFocusNode.hasFocus);
+              //             triggerFail = riveController.getTriggerInput(
+              //               'failTrigger',
+              //             );
 
-                    lookOnPassword?.change(passwordFocusNode.hasFocus);
+              //             // Sinkronkan animasi dengan fokus saat ini
+              //             lookOnEmail?.change(emailFocusNode.hasFocus);
 
-                    peekOnPassword?.change(!obsecure);
-                  },
-                ),
-              ),
+              //             lookOnPassword?.change(passwordFocusNode.hasFocus);
 
+              //             peekOnPassword?.change(!obsecure);
+              //           },
+              //         ),
+              //       );
+              //     },
+              //   ),
+              // ),
+              const SizedBox(height: 40),
               // FORM LOGIN
-              const Spacer(), // dorong container ke bawah
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.50,
+              Expanded(
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
