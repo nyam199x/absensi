@@ -14,7 +14,7 @@ plugins {
 
 
 android {
-    namespace = "com.example.absensi"
+    namespace = "com.absensi"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -24,7 +24,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.absensi"
+        applicationId = "com.absensi"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

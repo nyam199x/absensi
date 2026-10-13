@@ -1,4 +1,6 @@
+import 'package:absensi/service/simpan_token.dart';
 import 'package:absensi/view/autentikasi/login.dart';
+import 'package:absensi/view/dashboard/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
@@ -10,11 +12,11 @@ class Splash extends StatefulWidget {
 }
 
 class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
-  static const Duration _splashDuration = Duration(seconds: 5);
+  static const Duration _splashDuration = Duration(seconds: 3);
   static const Color _primary = Color.fromARGB(255, 17, 35, 95);
 
-  late AnimationController _logoController;
-  late Animation<double> _logoAnimation;
+  late final AnimationController _logoController;
+  late final Animation<double> _logoAnimation;
 
   @override
   void initState() {
@@ -32,20 +34,29 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
       curve: Curves.easeOutBack,
     );
 
-    // Jalankan animasi
     _logoController.forward();
 
     _checkSession();
   }
 
+  /// Tunggu splash selesai (sambil membaca token), lalu:
+  /// - sudah pernah login (token tersimpan) -> langsung ke dashboard
+  /// - belum / sudah logout -> ke halaman login
   Future<void> _checkSession() async {
-    await Future.delayed(_splashDuration);
-
+    final results = await Future.wait([
+      SimpanToken.getToken(),
+      Future.delayed(_splashDuration),
+    ]);
     if (!mounted) return;
+
+    final token = results.first as String?;
+    final isLoggedIn = token != null && token.isNotEmpty;
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const Login()),
+      MaterialPageRoute(
+        builder: (_) => isLoggedIn ? const Dashboard() : const Login(),
+      ),
       (route) => false,
     );
   }
@@ -64,37 +75,30 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
         children: [
           // Logo dengan animasi pop-up
           Center(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(80),
-              child: ScaleTransition(
-                scale: _logoAnimation,
+            child: ScaleTransition(
+              scale: _logoAnimation,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
                 child: Image.asset(
                   'assets/logo.png',
-                  height: 100,
-                  width: 400,
-                  fit: BoxFit.cover,
+                  width: 280,
+                  fit: BoxFit.contain, // jangan gepeng/terpotong
                 ),
               ),
             ),
           ),
 
-          // Tulisan dan animasi loading
+          // Animasi loading
           Align(
             alignment: Alignment.bottomCenter,
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 16),
-                    Lottie.asset(
-                      'assets/animations/loading.json',
-                      width: 100,
-                      height: 100,
-                      repeat: true,
-                    ),
-                  ],
+                child: Lottie.asset(
+                  'assets/animations/loading.json',
+                  width: 100,
+                  height: 100,
+                  repeat: true,
                 ),
               ),
             ),

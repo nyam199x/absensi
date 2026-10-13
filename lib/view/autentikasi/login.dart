@@ -167,7 +167,6 @@ class _LoginState extends State<Login> {
     }
   }
 
-  // final double _rasioArtboard = 1.0;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -187,370 +186,378 @@ class _LoginState extends State<Login> {
       ),
 
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // ANIMASI RIVE DI BAWAH APPBAR
-              // Expanded(
-              //   child: LayoutBuilder(
-              //     builder: (context, constraints) {
-              //       final tinggiTampil = (constraints.maxWidth / _rasioArtboard)
-              //           .clamp(0.0, constraints.maxHeight);
+        bottom: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // 👇 DUA BARIS INI DITARUH DI SINI
+            final tinggiAnimasi = constraints.maxHeight * 0.34;
+            const tumpang = 0;
 
-              //       return Transform.translate(
-              //         offset: Offset(0, tinggiTampil * 0.08),
-              //         child: RiveAnimation.asset(
-              //           'assets/animations/auth_teddy.riv',
-              //           fit: BoxFit.contain,
-              //           onInit: (artboard) {
-              //             final riveController =
-              //                 StateMachineController.fromArtboard(
-              //                   artboard,
-              //                   'Login Machine',
-              //                 );
+            return Stack(
+              children: [
+                // ANIMASI RIVE
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: tinggiAnimasi,
 
-              //             if (riveController == null) {
-              //               debugPrint(
-              //                 'State machine Login Machine tidak ditemukan',
-              //               );
-              //               return;
-              //             }
+                  child: RiveAnimation.asset(
+                    'assets/animations/auth_teddy.riv',
+                    fit: BoxFit.contain,
+                    alignment: Alignment.bottomCenter,
+                    onInit: (artboard) {
+                      final riveController =
+                          StateMachineController.fromArtboard(
+                            artboard,
+                            'Login Machine',
+                          );
 
-              //             artboard.addController(riveController);
-              //             controller = riveController;
+                      if (riveController == null) {
+                        debugPrint(
+                          'State machine Login Machine tidak ditemukan',
+                        );
+                        return;
+                      }
 
-              //             lookOnEmail = riveController.getBoolInput('isFocus');
+                      artboard.addController(riveController);
+                      controller = riveController;
 
-              //             followOnEmail = riveController.getNumberInput(
-              //               'numLook',
-              //             );
+                      lookOnEmail = riveController.getBoolInput('isFocus');
 
-              //             lookOnPassword = riveController.getBoolInput(
-              //               'isPrivateField',
-              //             );
+                      followOnEmail = riveController.getNumberInput('numLook');
 
-              //             peekOnPassword = riveController.getBoolInput(
-              //               'isPrivateFieldShow',
-              //             );
+                      lookOnPassword = riveController.getBoolInput(
+                        'isPrivateField',
+                      );
 
-              //             triggerSuccess = riveController.getTriggerInput(
-              //               'successTrigger',
-              //             );
+                      peekOnPassword = riveController.getBoolInput(
+                        'isPrivateFieldShow',
+                      );
 
-              //             triggerFail = riveController.getTriggerInput(
-              //               'failTrigger',
-              //             );
+                      triggerSuccess = riveController.getTriggerInput(
+                        'successTrigger',
+                      );
 
-              //             // Sinkronkan animasi dengan fokus saat ini
-              //             lookOnEmail?.change(emailFocusNode.hasFocus);
+                      triggerFail = riveController.getTriggerInput(
+                        'failTrigger',
+                      );
 
-              //             lookOnPassword?.change(passwordFocusNode.hasFocus);
+                      // Sinkronkan animasi dengan fokus saat ini
+                      lookOnEmail?.change(emailFocusNode.hasFocus);
 
-              //             peekOnPassword?.change(!obsecure);
-              //           },
-              //         ),
-              //       );
-              //     },
-              //   ),
-              // ),
-              const SizedBox(height: 40),
-              // FORM LOGIN
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(70),
-                      topRight: Radius.circular(70),
-                    ),
-                    border: Border(
-                      top: BorderSide(color: Colors.grey.shade400),
-                    ),
+                      lookOnPassword?.change(passwordFocusNode.hasFocus);
+
+                      peekOnPassword?.change(!obsecure);
+                    },
                   ),
+                ),
 
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 10),
+                // FORM LOGIN
+                Positioned(
+                  top: tinggiAnimasi - tumpang,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(70),
+                        topRight: Radius.circular(70),
+                      ),
+                      border: Border(
+                        top: BorderSide(color: Colors.grey.shade400),
+                      ),
+                    ),
 
-                        const Align(
-                          alignment: Alignment.center,
-                          child: Text(
-                            'Hello Welcome back',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(255, 17, 35, 95),
-                            ),
-                          ),
-                        ),
+                    child: SingleChildScrollView(
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 10),
 
-                        const SizedBox(height: 16),
-
-                        const Align(
-                          alignment: Alignment.center,
-                          child: Text(
-                            'Welcome back please\nsign in again',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 30),
-
-                        // EMAIL
-                        TextFormField(
-                          controller: emailController,
-                          focusNode: emailFocusNode,
-                          keyboardType: TextInputType.emailAddress,
-                          onChanged: (value) {
-                            followOnEmail?.change(value.length.toDouble());
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Email wajib diisi';
-                            } else if (!value.contains('@')) {
-                              return 'Format email tidak valid';
-                            }
-
-                            return null;
-                          },
-                          decoration: InputDecoration(
-                            labelText: 'Email',
-                            hintText: 'Masukkan email',
-                            prefixIcon: const Icon(Icons.email),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // PASSWORD
-                        TextFormField(
-                          controller: passwordController,
-                          focusNode: passwordFocusNode,
-                          obscureText: obsecure,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Password wajib diisi';
-                            }
-
-                            return null;
-                          },
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            hintText: 'Masukkan password',
-                            prefixIcon: const Icon(Icons.lock),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  obsecure = !obsecure;
-                                  peekOnPassword?.change(!obsecure);
-                                });
-                              },
-                              icon: Icon(
-                                obsecure
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // TOMBOL LOGIN
-                        SizedBox(
-                          width: double.infinity,
-                          height: 45,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromARGB(
-                                255,
-                                17,
-                                35,
-                                95,
-                              ),
-                            ),
-                            onPressed: _isLoading ? null : _login,
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text(
-                                    'Login',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        // PEMISAH
-                        // Row(
-                        //   children: [
-                        //     const Expanded(
-                        //       child: Padding(
-                        //         padding: EdgeInsets.only(left: 10),
-                        //         child: Divider(
-                        //           color: Colors.black,
-                        //           thickness: 1,
-                        //         ),
-                        //       ),
-                        //     ),
-
-                        //     const Padding(
-                        //       padding: EdgeInsets.symmetric(
-                        //         horizontal: 20,
-                        //       ),
-                        //       child: Text(
-                        //         'or',
-                        //         style: TextStyle(
-                        //           color: Colors.black,
-                        //           fontWeight: FontWeight.bold,
-                        //           fontSize: 20,
-                        //         ),
-                        //       ),
-                        //     ),
-
-                        //     const Expanded(
-                        //       child: Padding(
-                        //         padding: EdgeInsets.only(right: 10),
-                        //         child: Divider(
-                        //           color: Colors.black,
-                        //           thickness: 1,
-                        //         ),
-                        //       ),
-                        //     ),
-                        //   ],
-                        // ),
-
-                        // const SizedBox(height: 10),
-
-                        // // FACEBOOK
-                        // Container(
-                        //   width: double.infinity,
-                        //   height: 45,
-                        //   decoration: BoxDecoration(
-                        //     color: const Color.fromARGB(255, 17, 35, 95),
-                        //     borderRadius: BorderRadius.circular(20),
-                        //   ),
-                        //   child: Row(
-                        //     mainAxisAlignment: MainAxisAlignment.center,
-                        //     children: [
-                        //       Image.asset(
-                        //         'assets/iconfb.png',
-                        //         width: 30,
-                        //         height: 30,
-                        //       ),
-                        //       const SizedBox(width: 6),
-                        //       const Text(
-                        //         'Facebook',
-                        //         style: TextStyle(
-                        //           fontSize: 16,
-                        //           color: Colors.white,
-                        //         ),
-                        //       ),
-                        //     ],
-                        //   ),
-                        // ),
-
-                        // const SizedBox(height: 10),
-
-                        // // GOOGLE
-                        // Container(
-                        //   width: double.infinity,
-                        //   height: 45,
-                        //   decoration: BoxDecoration(
-                        //     color: const Color.fromARGB(255, 17, 35, 95),
-                        //     borderRadius: BorderRadius.circular(20),
-                        //   ),
-                        //   child: Row(
-                        //     mainAxisAlignment: MainAxisAlignment.center,
-                        //     children: [
-                        //       Image.asset(
-                        //         'assets/search.png',
-                        //         width: 30,
-                        //         height: 20,
-                        //       ),
-                        //       const SizedBox(width: 10),
-                        //       const Text(
-                        //         'Google',
-                        //         style: TextStyle(
-                        //           fontSize: 16,
-                        //           color: Colors.white,
-                        //         ),
-                        //       ),
-                        //     ],
-                        //   ),
-                        // ),
-
-                        // LINK REGISTER
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 20),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'Dont have an account?',
+                            const Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Hello Welcome back',
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 12,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color.fromARGB(255, 17, 35, 95),
                                 ),
                               ),
+                            ),
 
-                              const SizedBox(width: 5),
+                            const SizedBox(height: 16),
 
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const Register(),
-                                    ),
-                                  );
-                                },
-                                child: const Text(
-                                  'Sign up',
-                                  style: TextStyle(
-                                    color: Color.fromARGB(255, 17, 35, 95),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                            const Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Welcome back please\nsign in again',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 30),
+
+                            // EMAIL
+                            TextFormField(
+                              controller: emailController,
+                              focusNode: emailFocusNode,
+                              keyboardType: TextInputType.emailAddress,
+                              onChanged: (value) {
+                                followOnEmail?.change(value.length.toDouble());
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Email wajib diisi';
+                                } else if (!value.contains('@')) {
+                                  return 'Format email tidak valid';
+                                }
+
+                                return null;
+                              },
+                              decoration: InputDecoration(
+                                labelText: 'Email',
+                                hintText: 'Masukkan email',
+                                prefixIcon: const Icon(Icons.email),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // PASSWORD
+                            TextFormField(
+                              controller: passwordController,
+                              focusNode: passwordFocusNode,
+                              obscureText: obsecure,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Password wajib diisi';
+                                }
+
+                                return null;
+                              },
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                hintText: 'Masukkan password',
+                                prefixIcon: const Icon(Icons.lock),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                suffixIcon: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      obsecure = !obsecure;
+                                      peekOnPassword?.change(!obsecure);
+                                    });
+                                  },
+                                  icon: Icon(
+                                    obsecure
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // TOMBOL LOGIN
+                            SizedBox(
+                              width: double.infinity,
+                              height: 45,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromARGB(
+                                    255,
+                                    17,
+                                    35,
+                                    95,
+                                  ),
+                                ),
+                                onPressed: _isLoading ? null : _login,
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Login',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            // PEMISAH
+                            // Row(
+                            //   children: [
+                            //     const Expanded(
+                            //       child: Padding(
+                            //         padding: EdgeInsets.only(left: 10),
+                            //         child: Divider(
+                            //           color: Colors.black,
+                            //           thickness: 1,
+                            //         ),
+                            //       ),
+                            //     ),
+
+                            //     const Padding(
+                            //       padding: EdgeInsets.symmetric(
+                            //         horizontal: 20,
+                            //       ),
+                            //       child: Text(
+                            //         'or',
+                            //         style: TextStyle(
+                            //           color: Colors.black,
+                            //           fontWeight: FontWeight.bold,
+                            //           fontSize: 20,
+                            //         ),
+                            //       ),
+                            //     ),
+
+                            //     const Expanded(
+                            //       child: Padding(
+                            //         padding: EdgeInsets.only(right: 10),
+                            //         child: Divider(
+                            //           color: Colors.black,
+                            //           thickness: 1,
+                            //         ),
+                            //       ),
+                            //     ),
+                            //   ],
+                            // ),
+
+                            // const SizedBox(height: 10),
+
+                            // // FACEBOOK
+                            // Container(
+                            //   width: double.infinity,
+                            //   height: 45,
+                            //   decoration: BoxDecoration(
+                            //     color: const Color.fromARGB(255, 17, 35, 95),
+                            //     borderRadius: BorderRadius.circular(20),
+                            //   ),
+                            //   child: Row(
+                            //     mainAxisAlignment: MainAxisAlignment.center,
+                            //     children: [
+                            //       Image.asset(
+                            //         'assets/iconfb.png',
+                            //         width: 30,
+                            //         height: 30,
+                            //       ),
+                            //       const SizedBox(width: 6),
+                            //       const Text(
+                            //         'Facebook',
+                            //         style: TextStyle(
+                            //           fontSize: 16,
+                            //           color: Colors.white,
+                            //         ),
+                            //       ),
+                            //     ],
+                            //   ),
+                            // ),
+
+                            // const SizedBox(height: 10),
+
+                            // // GOOGLE
+                            // Container(
+                            //   width: double.infinity,
+                            //   height: 45,
+                            //   decoration: BoxDecoration(
+                            //     color: const Color.fromARGB(255, 17, 35, 95),
+                            //     borderRadius: BorderRadius.circular(20),
+                            //   ),
+                            //   child: Row(
+                            //     mainAxisAlignment: MainAxisAlignment.center,
+                            //     children: [
+                            //       Image.asset(
+                            //         'assets/search.png',
+                            //         width: 30,
+                            //         height: 20,
+                            //       ),
+                            //       const SizedBox(width: 10),
+                            //       const Text(
+                            //         'Google',
+                            //         style: TextStyle(
+                            //           fontSize: 16,
+                            //           color: Colors.white,
+                            //         ),
+                            //       ),
+                            //     ],
+                            //   ),
+                            // ),
+
+                            // LINK REGISTER
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    'Dont have an account?',
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 5),
+
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const Register(),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text(
+                                      'Sign up',
+                                      style: TextStyle(
+                                        color: Color.fromARGB(255, 17, 35, 95),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            );
+          },
         ),
       ),
     );
